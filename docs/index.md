@@ -15,10 +15,10 @@ hero:
 features:
   - title: Zero Config
     details: Works out of the box with sensible defaults. Just install and use.
+  - title: Vanilla Templates
+    details: Uses CodeSandbox's vanilla and vanilla-ts templates with Parcel bundler for a seamless experience.
   - title: HMR Support
     details: Full hot module replacement support - buttons update as you edit your docs.
-  - title: Fully Customizable
-    details: Configure languages, button text, custom HTML templates, and external scripts.
   - title: Lightweight
     details: Minimal dependencies. Only lz-string for URL compression.
 ---
@@ -80,3 +80,15 @@ app.appendChild(subtitle)
 document.body.style.margin = '0'
 document.body.appendChild(app)
 ```
+
+## Language Matching
+
+The `languages` option uses **exact matching**, giving you fine-grained control:
+
+```ts
+useCodeSandbox({
+  languages: ['javascript'] // Only 'javascript', not 'js'
+})
+```
+
+With this configuration, ` ```javascript ` blocks will have the button, but ` ```js ` blocks will not. This is useful when you want some code blocks to be openable in CodeSandbox while others remain display-only.

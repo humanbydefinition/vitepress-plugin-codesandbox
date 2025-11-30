@@ -8,19 +8,13 @@ The `useCodeSandbox` function accepts an options object to customize behavior.
 interface CodeSandboxOptions {
   // Languages to enable the button for
   languages?: string[]
-  
-  // Custom HTML template (use {{SCRIPTS}} for script placeholder)
-  indexHtml?: string
-  
+
   // Additional scripts to load before user code
   scripts?: string[]
-  
-  // Filename for user code in sandbox
-  filename?: string
-  
+
   // Button text
   buttonText?: string
-  
+
   // Button CSS class
   buttonClass?: string
 }
@@ -33,7 +27,6 @@ interface CodeSandboxOptions {
 ```ts
 useCodeSandbox({
   languages: ['javascript', 'typescript'],
-  filename: 'index.js',
   buttonText: 'Open in CodeSandbox',
   buttonClass: 'code-sandbox-btn',
 })
@@ -52,32 +45,22 @@ useCodeSandbox({
 })
 ```
 
-### Custom HTML template
+### Language matching
 
-Provide a complete custom HTML template:
+The `languages` option uses **exact matching**. This allows you to selectively enable the button for specific code blocks:
 
 ```ts
+// Only enable for 'javascript' - not 'js'
 useCodeSandbox({
-  indexHtml: `<!DOCTYPE html>
-<html>
-  <head>
-    <title>My Sandbox</title>
-    <style>
-      body { 
-        margin: 0; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        min-height: 100vh;
-      }
-    </style>
-  </head>
-  <body>
-    {{SCRIPTS}}
-  </body>
-</html>`,
+  languages: ['javascript']
 })
 ```
+
+With this configuration:
+- ` ```javascript ` blocks → **will have** the button
+- ` ```js ` blocks → **will not have** the button
+
+This is useful when you want some code blocks to be openable in CodeSandbox, while others are just for display.
 
 ### Custom button styling
 
@@ -86,7 +69,7 @@ Use a custom CSS class and import your own styles:
 ```ts
 useCodeSandbox({
   buttonClass: 'my-custom-btn',
-  buttonText: ' Run in Sandbox',
+  buttonText: '🚀 Run in Sandbox',
 })
 ```
 
@@ -100,3 +83,16 @@ useCodeSandbox({
   font-weight: 600;
 }
 ```
+
+## How the Sandbox Works
+
+When a user clicks "Open in CodeSandbox", the plugin creates a sandbox with:
+
+- **JavaScript blocks** → `vanilla` template with Parcel bundler
+- **TypeScript blocks** → `vanilla-ts` template with Parcel bundler and TypeScript configured
+
+The generated sandbox includes:
+- An `index.html` with basic styling and a `<div id="app">` element
+- Your code in `src/index.js` or `src/index.ts` (loaded as a module)
+- A `package.json` configured with Parcel as the bundler
+- For TypeScript: a `tsconfig.json` with sensible defaults

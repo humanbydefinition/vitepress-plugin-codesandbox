@@ -48,7 +48,11 @@ The plugin:
 
 1. Scans your page for code blocks with supported languages
 2. Compresses the code using lz-string
-3. Generates a CodeSandbox URL with the embedded code
+3. Generates a CodeSandbox URL with embedded files (using `vanilla` or `vanilla-ts` template)
 4. Adds a button that opens the sandbox in a new tab
 
 The sandbox is created on-the-fly when the user clicks the button - no API keys or accounts needed!
+
+::: tip Language Matching
+The `languages` option uses **exact matching**. If you configure `languages: ['javascript']`, only ` ```javascript ` blocks will have the button - ` ```js ` blocks will not. This is useful when you want some code blocks to be display-only.
+:::
