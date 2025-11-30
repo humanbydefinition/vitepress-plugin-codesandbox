@@ -1,0 +1,25 @@
+{
+  "name": "vitepress-plugin-codesandbox-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "docs"
+  ],
+  "scripts": {
+    "dev": "npm run docs:dev",
+    "build": "npm run plugin:build && npm run docs:build",
+    "docs:dev": "npm run plugin:build && vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "plugin:build": "npm -w vitepress-plugin-codesandbox run build",
+    "plugin:watch": "npm -w vitepress-plugin-codesandbox run watch",
+    "prepublishOnly": "npm run plugin:build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
