@@ -110,15 +110,12 @@ async function enhanceCodeBlocks(options: ResolvedCodeSandboxOptions): Promise<b
     const codeText = codeElement.textContent ?? ''
     if (!codeText.trim()) continue
 
-    const openButton = await createCodeSandboxButton(codeText, options)
+    const openButton = await createCodeSandboxButton(codeText, language, options)
     if (!openButton) continue
 
+    // Insert button before the copy button (as a sibling)
     const parent = copyButton.parentElement ?? block
-    if (options.buttonPosition === 'before') {
-      parent.insertBefore(openButton, copyButton)
-    } else {
-      copyButton.after(openButton)
-    }
+    parent.insertBefore(openButton, copyButton)
 
     block.dataset.codesandboxReady = 'true'
     added += 1
@@ -146,9 +143,10 @@ function getCodeBlockLanguage(block: HTMLElement): string | null {
  */
 async function createCodeSandboxButton(
   rawCode: string,
+  language: string,
   options: ResolvedCodeSandboxOptions
 ): Promise<HTMLAnchorElement | null> {
-  const sandboxUrl = await buildCodeSandboxUrl(rawCode, options)
+  const sandboxUrl = await buildCodeSandboxUrl(rawCode, options, language)
 
   const button = document.createElement('a')
   button.className = options.buttonClass

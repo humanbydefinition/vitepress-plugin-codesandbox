@@ -46,9 +46,6 @@ useCodeSandbox({
 
   // Button CSS class (default: 'code-sandbox-btn')
   buttonClass: 'code-sandbox-btn',
-
-  // Button position relative to copy button (default: 'before')
-  buttonPosition: 'before'
 })
 ```
 

@@ -26,7 +26,6 @@ const DEFAULT_OPTIONS: ResolvedCodeSandboxOptions = {
   filename: 'index.js',
   buttonText: 'Open in CodeSandbox',
   buttonClass: 'code-sandbox-btn',
-  buttonPosition: 'before',
 }
 
 /**
@@ -40,20 +39,19 @@ export function resolveOptions(options: CodeSandboxOptions = {}): ResolvedCodeSa
     filename: options.filename ?? DEFAULT_OPTIONS.filename,
     buttonText: options.buttonText ?? DEFAULT_OPTIONS.buttonText,
     buttonClass: options.buttonClass ?? DEFAULT_OPTIONS.buttonClass,
-    buttonPosition: options.buttonPosition ?? DEFAULT_OPTIONS.buttonPosition,
   }
 }
 
 /**
  * Build the HTML content for the sandbox index.html.
  */
-export function buildIndexHtml(options: ResolvedCodeSandboxOptions): string {
+export function buildIndexHtml(filename: string, scripts: string[]): string {
   const scriptTags = [
-    ...options.scripts.map((src) => `<script src="${src}"></script>`),
-    `<script src="./${options.filename}"></script>`,
+    ...scripts.map((src) => `<script src="${src}"></script>`),
+    `<script src="./${filename}"></script>`,
   ].join('\n    ')
 
-  return options.indexHtml.replace('{{SCRIPTS}}', scriptTags)
+  return DEFAULT_INDEX_HTML.replace('{{SCRIPTS}}', scriptTags)
 }
 
 /**
@@ -65,11 +63,14 @@ export function sanitizeCode(raw: string): string {
 }
 
 /**
- * Encode the sandbox payload using lz-string compression.
+ * Compress the sandbox payload using lz-string.
+ * This matches the format expected by CodeSandbox's define API.
  */
-export async function encodeSandboxPayload(payload: Record<string, unknown>): Promise<string> {
+export async function getParameters(parameters: {
+  files: { [key: string]: { content: string; isBinary?: boolean } }
+}): Promise<string> {
   const { compressToBase64 } = await import('lz-string')
-  const json = JSON.stringify(payload)
+  const json = JSON.stringify(parameters)
   return compressToBase64(json)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -77,24 +78,207 @@ export async function encodeSandboxPayload(payload: Record<string, unknown>): Pr
 }
 
 /**
+ * Get the appropriate filename extension for a language.
+ */
+export function getFilenameForLanguage(language: string, defaultFilename: string): string {
+  const isTypeScript = language === 'typescript' || language === 'ts'
+  const ext = isTypeScript ? 'ts' : 'js'
+  
+  if (defaultFilename.match(/\.[jt]sx?$/)) {
+    return defaultFilename.replace(/\.[jt]sx?$/, `.${ext}`)
+  }
+  return `index.${ext}`
+}
+
+/**
+ * Strip TypeScript type annotations for use in static sandbox.
+ * Uses a careful approach to avoid breaking CSS and object values.
+ */
+export function stripTypeAnnotations(code: string): string {
+  // Split code into parts: template literals, strings, and regular code
+  // We only want to strip types from regular code, not from strings
+  const result: string[] = []
+  let i = 0
+  
+  while (i < code.length) {
+    // Check for template literal
+    if (code[i] === '`') {
+      const start = i
+      i++
+      while (i < code.length && code[i] !== '`') {
+        if (code[i] === '\\') i++ // Skip escaped characters
+        i++
+      }
+      i++ // Include closing backtick
+      result.push(code.slice(start, i))
+      continue
+    }
+    
+    // Check for single or double quoted strings
+    if (code[i] === '"' || code[i] === "'") {
+      const quote = code[i]
+      const start = i
+      i++
+      while (i < code.length && code[i] !== quote) {
+        if (code[i] === '\\') i++ // Skip escaped characters
+        i++
+      }
+      i++ // Include closing quote
+      result.push(code.slice(start, i))
+      continue
+    }
+    
+    // Check for comments
+    if (code[i] === '/' && code[i + 1] === '/') {
+      const start = i
+      while (i < code.length && code[i] !== '\n') i++
+      result.push(code.slice(start, i))
+      continue
+    }
+    if (code[i] === '/' && code[i + 1] === '*') {
+      const start = i
+      i += 2
+      while (i < code.length - 1 && !(code[i] === '*' && code[i + 1] === '/')) i++
+      i += 2
+      result.push(code.slice(start, i))
+      continue
+    }
+    
+    // Regular code - accumulate until we hit a string/template/comment
+    const start = i
+    while (i < code.length && 
+           code[i] !== '`' && 
+           code[i] !== '"' && 
+           code[i] !== "'" &&
+           !(code[i] === '/' && (code[i + 1] === '/' || code[i + 1] === '*'))) {
+      i++
+    }
+    
+    if (i > start) {
+      let chunk = code.slice(start, i)
+      
+      // Now safely strip TypeScript from this code chunk
+      chunk = chunk
+        // Remove interface declarations
+        .replace(/\binterface\s+\w+\s*\{[^}]*\}/g, '')
+        // Remove type aliases
+        .replace(/\btype\s+\w+\s*=\s*[^;]+;/g, '')
+        // Remove function return type annotations: ): Type {  or ): Type =>
+        .replace(/\)\s*:\s*\w+(?:<[^>]+>)?(?:\[\])?\s*(?=[{=])/g, ') ')
+        // Remove parameter type annotations: (param: Type) or (param: Type,
+        .replace(/(\w+)\s*:\s*\w+(?:<[^>]+>)?(?:\[\])?\s*(?=[,\)])/g, '$1')
+        // Remove variable type annotations: const x: Type = or let x: Type =
+        .replace(/(const|let|var)\s+(\w+)\s*:\s*\w+(?:<[^>]+>)?(?:\[\])?\s*=/g, '$1 $2 =')
+        // Remove 'as Type' assertions
+        .replace(/\s+as\s+\w+(?:<[^>]+>)?(?:\[\])?/g, '')
+      
+      result.push(chunk)
+    }
+  }
+  
+  return result.join('')
+    // Clean up multiple blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    // Clean up leading blank lines
+    .replace(/^\s*\n/, '')
+}
+
+/**
  * Build the CodeSandbox URL for the given code.
+ * Uses 'vanilla' template for JavaScript and 'vanilla-ts' for TypeScript.
  */
 export async function buildCodeSandboxUrl(
   code: string,
-  options: ResolvedCodeSandboxOptions
+  options: ResolvedCodeSandboxOptions,
+  language: string = 'javascript'
 ): Promise<string> {
-  const indexHtml = buildIndexHtml(options)
   const sanitizedCode = sanitizeCode(code)
+  const isTypeScript = language === 'typescript' || language === 'ts'
+  
+  // Use appropriate template based on language
+  const mainFile = isTypeScript ? 'src/index.ts' : 'src/index.js'
+  
+  // Build the index.html that imports the main file as a module
+  const indexHtmlContent = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeSandbox</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+${options.scripts.map((src) => `    <script src="${src}"></script>`).join('\n')}
+    <script type="module" src="/${mainFile}"></script>
+  </body>
+</html>
+`
 
-  const payload = {
-    template: 'static',
-    files: {
-      'index.html': { content: indexHtml },
-      [options.filename]: { content: sanitizedCode },
-    },
+  // Build files object with the correct structure
+  const files: { [key: string]: { content: string; isBinary: boolean } } = {
+    'index.html': { content: indexHtmlContent, isBinary: false },
+    [mainFile]: { content: sanitizedCode, isBinary: false },
   }
 
-  const parameters = await encodeSandboxPayload(payload)
-  const query = `file=${options.filename}`
+  // Add package.json for proper bundling
+  if (isTypeScript) {
+    files['package.json'] = {
+      content: JSON.stringify({
+        name: 'typescript-sandbox',
+        version: '1.0.0',
+        description: '',
+        main: 'src/index.ts',
+        scripts: {
+          start: 'parcel index.html',
+          build: 'parcel build index.html'
+        },
+        dependencies: {},
+        devDependencies: {
+          'parcel-bundler': '^1.12.5',
+          'typescript': '^5.0.0'
+        }
+      }, null, 2),
+      isBinary: false
+    }
+    files['tsconfig.json'] = {
+      content: JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          module: 'ESNext',
+          target: 'ESNext',
+          moduleResolution: 'node',
+          esModuleInterop: true,
+          skipLibCheck: true
+        },
+        include: ['src/**/*']
+      }, null, 2),
+      isBinary: false
+    }
+  } else {
+    files['package.json'] = {
+      content: JSON.stringify({
+        name: 'javascript-sandbox',
+        version: '1.0.0',
+        description: '',
+        main: 'src/index.js',
+        scripts: {
+          start: 'parcel index.html',
+          build: 'parcel build index.html'
+        },
+        dependencies: {},
+        devDependencies: {
+          'parcel-bundler': '^1.12.5'
+        }
+      }, null, 2),
+      isBinary: false
+    }
+  }
+
+  const parameters = await getParameters({ files })
+  const query = `file=/${mainFile}`
   return `${CODE_SANDBOX_ENDPOINT}?parameters=${parameters}&query=${encodeURIComponent(query)}`
 }

@@ -1,0 +1,30 @@
+﻿# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+packages/*/dist/
+
+# VitePress
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Package lock files (optional - remove if you want to commit)
+# package-lock.json

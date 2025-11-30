@@ -1,37 +1,64 @@
 /**
  * Default styles for the CodeSandbox button.
  * Import this in your theme if you want the default styling.
+ * Matches VitePress copy button styling.
  */
 
 .code-sandbox-btn {
-  position: relative;
-  display: inline-block;
-  padding: 4px 8px;
-  margin-right: 8px;
+  direction: ltr;
+  position: absolute;
+  top: 12px;
+  right: 60px;
+  z-index: 3;
+  display: block;
   border-radius: 4px;
+  width: auto;
+  height: 40px;
+  padding: 0 12px;
+  background-color: var(--vp-code-copy-code-bg);
+  border: 1px solid var(--vp-code-copy-code-border-color);
+  cursor: pointer;
+  background-image: none;
+  opacity: 0;
+  transition:
+    border-color 0.25s,
+    background-color 0.25s,
+    opacity 0.25s;
+  
+  /* Text styling */
+  font-family: var(--vp-font-family-base);
   font-size: 12px;
   font-weight: 500;
-  text-decoration: none;
-  color: var(--vp-code-copy-code-hover-bg, #aaa);
-  background: transparent;
-  border: 1px solid var(--vp-code-copy-code-hover-bg, #444);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s, color 0.2s, border-color 0.2s, background-color 0.2s;
+  line-height: 40px;
+  text-decoration: none !important;
+  white-space: nowrap;
+  color: var(--vp-code-copy-code-active-text, var(--vp-c-text-2)) !important;
 }
 
-div[class*='language-']:hover .code-sandbox-btn {
+/* Ensure link styling is overridden */
+.code-sandbox-btn:link,
+.code-sandbox-btn:visited,
+.code-sandbox-btn:hover,
+.code-sandbox-btn:active {
+  text-decoration: none !important;
+  color: var(--vp-code-copy-code-active-text, var(--vp-c-text-2)) !important;
+}
+
+/* Show button on hover or focus-visible (keyboard navigation) */
+.vp-doc [class*='language-']:hover > .code-sandbox-btn,
+.vp-doc [class*='language-'] > .code-sandbox-btn:focus-visible {
   opacity: 1;
 }
 
-.code-sandbox-btn:hover {
-  color: var(--vp-c-brand-1, #3eaf7c);
-  border-color: var(--vp-c-brand-1, #3eaf7c);
-  background: var(--vp-code-copy-code-hover-bg, rgba(255, 255, 255, 0.05));
+/* Hover/focus state */
+.vp-doc [class*='language-'] > .code-sandbox-btn:hover,
+.vp-doc [class*='language-'] > .code-sandbox-btn:focus-visible {
+  border-color: var(--vp-code-copy-code-hover-border-color);
+  background-color: var(--vp-code-copy-code-hover-bg);
 }
 
-.code-sandbox-btn:focus-visible {
-  opacity: 1;
-  outline: 2px solid var(--vp-c-brand-1, #3eaf7c);
+/* Focus visible outline */
+.vp-doc [class*='language-'] > .code-sandbox-btn:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 2px;
 }

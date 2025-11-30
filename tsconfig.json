@@ -6,12 +6,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "references": [
+    { "path": "./packages/vitepress-plugin-codesandbox" }
+  ],
+  "include": [],
+  "exclude": ["node_modules", "dist", "docs"]
 }

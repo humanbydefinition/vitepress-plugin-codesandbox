@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "vitepress-plugin-codesandbox",
   "version": "0.1.0",
   "description": "Add 'Open in CodeSandbox' buttons to VitePress code blocks",
@@ -52,6 +52,7 @@
     "lz-string": "^1.5.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitepress": "^1.5.0",

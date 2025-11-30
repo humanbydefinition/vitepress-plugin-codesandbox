@@ -37,12 +37,6 @@ export interface CodeSandboxOptions {
    * @default 'code-sandbox-btn'
    */
   buttonClass?: string
-
-  /**
-   * Position of the button relative to the copy button.
-   * @default 'before'
-   */
-  buttonPosition?: 'before' | 'after'
 }
 
 /**
@@ -55,5 +49,4 @@ export interface ResolvedCodeSandboxOptions {
   filename: string
   buttonText: string
   buttonClass: string
-  buttonPosition: 'before' | 'after'
 }
