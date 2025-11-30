@@ -59,8 +59,8 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright  2025 humanbydefinition'
+      message: '<a href="/legal/imprint">Imprint</a> | <a href="/legal/data-protection-policy">Data Protection Policy</a>',
+      copyright: 'Copyright © 2025 humanbydefinition. Released under the MIT License.'
     }
   }
 })
