@@ -69,7 +69,20 @@ export function sanitizeCode(raw: string): string {
 export async function getParameters(parameters: {
   files: { [key: string]: { content: string; isBinary?: boolean } }
 }): Promise<string> {
-  const { compressToBase64 } = await import('lz-string')
+  const lzStringModule = await import('lz-string')
+  
+  // Handle both ESM named exports and CJS default export patterns
+  const compressToBase64: (input: string) => string = 
+    lzStringModule.compressToBase64 ?? 
+    (lzStringModule.default as typeof lzStringModule)?.compressToBase64
+  
+  if (typeof compressToBase64 !== 'function') {
+    throw new Error(
+      'Failed to load compressToBase64 from lz-string. ' +
+      'Please ensure lz-string is properly installed.'
+    )
+  }
+  
   const json = JSON.stringify(parameters)
   return compressToBase64(json)
     .replace(/\+/g, '-')
